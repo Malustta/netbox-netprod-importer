@@ -9,7 +9,7 @@ import cachetools
 from netboxapi import NetboxMapper
 from tqdm import tqdm
 import json
-
+from rich import print as rprint
 
 from netbox_netprod_importer.vendors.cisco import CiscoParser
 from netbox_netprod_importer.vendors.juniper import JuniperParser
@@ -150,6 +150,12 @@ class NetboxDevicePropsPusher(_NetboxPusher):
                     setattr(interface, "untagged_vlan", vlan_id)
 
             if_prop.pop("untagged_vlan")
+            
+            if if_prop["custom_fields"]["voice_vlan"]:                
+                vlan_id = self._get_vlan_id(if_prop["custom_fields"]["voice_vlan"])
+                if vlan_id != -1:                    
+                    if_prop["custom_fields"]["voice_vlan"]=vlan_id                    
+
             if len(if_prop["tagged_vlans"]):
                 setattr(interface, "tagged_vlans", [])
                 for vlan in if_prop["tagged_vlans"]:
@@ -158,7 +164,7 @@ class NetboxDevicePropsPusher(_NetboxPusher):
                         interface.tagged_vlans.append(vlan_id)
             if_prop.pop("tagged_vlans")
 
-            for k, v in if_prop.items():
+            for k, v in if_prop.items():               
                 setattr(interface, k, v)
 
             try:
