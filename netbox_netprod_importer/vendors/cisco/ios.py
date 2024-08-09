@@ -142,6 +142,7 @@ class IOSParser(CiscoParser):
         cmd = "show interface switchport"
 
         if not self.cache.get("mode"):
+
             mode_conf_dump = self.device.cli([cmd])[cmd]
             mode_conf_lines = re.split(r"(^Name: \S+$)", mode_conf_dump, flags=re.M)
             mode_conf_lines.pop(0)
@@ -161,7 +162,9 @@ class IOSParser(CiscoParser):
                     r"^Name:\s+(?P<interface>\S+)",
                     r"^Administrative Mode:\s+(?P<oper_mode>static access|trunk|access)",
                     r"^Access Mode VLAN:\s+(?P<access_vlan>\d+)",
-                    r"^Trunking Native Mode VLAN:\s+(?P<native_valn>\d+)"
+                    r"^Trunking Native Mode VLAN:\s+(?P<native_vlan>\d+)",                    
+                    r"^Voice VLAN:\s+(?P<voice_vlan>\d+)",
+                    r"^Trunking VLANs Enabled:\s+(?P<tagged_vlans>ALL)",                    
                 ]
                 inf_mode = {}
                 for g in grp:
@@ -169,10 +172,12 @@ class IOSParser(CiscoParser):
                     if find:
                         inf_mode[find.lastgroup] = find.group(find.lastgroup)
                 if inf_mode.get("interface"):
+                    if not inf_mode.get("voice_vlan"):
+                        inf_mode.update({'voice_vlan' : ''})
+                    if inf_mode.get("oper_mode") == "trunk" and inf_mode.get("tagged_vlans") == "ALL":
+                        inf_mode.update({'oper_mode' : 'trunk all'})                                            
                     interfaces_mode[inf_mode["interface"]] = inf_mode
-
             self.cache["mode"] = interfaces_mode
-
         return self.cache["mode"]
 
     def get_vlans(self):
